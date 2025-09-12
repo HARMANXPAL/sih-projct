@@ -16,6 +16,7 @@ export interface IStorage {
   getCrop(id: string): Promise<Crop | undefined>;
   createCrop(crop: InsertCrop): Promise<Crop>;
   updateCrop(id: string, crop: Partial<Crop>): Promise<Crop | undefined>;
+  deleteCrop(id: string): Promise<boolean>;
   
   // Field operations
   getFieldsByUserId(userId: string): Promise<Field[]>;
@@ -71,7 +72,7 @@ export class MemStorage implements IStorage {
       id: sampleUserId,
       username: "farmer1",
       email: "farmer1@example.com",
-      password: "$2b$10$YourHashedPasswordHere", // In real app, this would be properly hashed
+      password: "$2b$10$ITOAicsj1lEPrdK0ttJG/.MXbRHaNX47eFT6.zeGDxqe4agAKydUa", // password123
       fullName: "Rajesh Kumar",
       role: "farmer",
       createdAt: new Date(),
@@ -215,6 +216,10 @@ export class MemStorage implements IStorage {
       return updatedCrop;
     }
     return undefined;
+  }
+
+  async deleteCrop(id: string): Promise<boolean> {
+    return this.crops.delete(id);
   }
 
   // Field operations

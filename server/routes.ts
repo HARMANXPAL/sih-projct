@@ -140,13 +140,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/crops/:id', authenticateToken, async (req: any, res) => {
     try {
-      const crop = await storage.updateCrop(req.params.id, req.body);
+      // First check if crop exists and belongs to the authenticated user
+      const existingCrop = await storage.getCrop(req.params.id);
+      if (!existingCrop) {
+        return res.status(404).json({ message: "Crop not found" });
+      }
+      
+      if (existingCrop.userId !== req.user.userId) {
+        return res.status(403).json({ message: "You can only update your own crops" });
+      }
+
+      // Validate the update data using a strict partial schema (exclude userId since it shouldn't be updated)
+      const updateSchema = insertCropSchema.omit({ userId: true }).partial().strict();
+      const validatedData = updateSchema.parse(req.body);
+      
+      const crop = await storage.updateCrop(req.params.id, validatedData);
       if (!crop) {
         return res.status(404).json({ message: "Crop not found" });
       }
       res.json(crop);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete('/api/crops/:id', authenticateToken, async (req: any, res) => {
+    try {
+      // First check if crop exists and belongs to the authenticated user
+      const existingCrop = await storage.getCrop(req.params.id);
+      if (!existingCrop) {
+        return res.status(404).json({ message: "Crop not found" });
+      }
+      
+      if (existingCrop.userId !== req.user.userId) {
+        return res.status(403).json({ message: "You can only delete your own crops" });
+      }
+
+      const deleted = await storage.deleteCrop(req.params.id);
+      if (!deleted) {
+        return res.status(500).json({ message: "Failed to delete crop" });
+      }
+      
+      res.status(200).json({ message: "Crop deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 
