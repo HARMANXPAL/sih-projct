@@ -38,6 +38,7 @@ type DroneFormData = z.infer<typeof droneSchema>;
 export default function DroneConnectionPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [discoveredDrones, setDiscoveredDrones] = useState<Array<{id: string, name: string, type: string}>>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -130,14 +131,41 @@ export default function DroneConnectionPage() {
 
   const handleStartScan = async () => {
     setIsScanning(true);
-    // Simulate scanning process
+    setDiscoveredDrones([]);
+    
+    // Simulate drone discovery process
     setTimeout(() => {
+      const mockDrones = [
+        { id: 'phantom-pro', name: 'Phantom Pro', type: 'wifi' },
+        { id: 'agri-bot-x1', name: 'Agri-Bot X1', type: 'bluetooth' },
+        { id: 'field-scout-2', name: 'Field Scout 2', type: 'wifi' },
+        { id: 'smart-sprayer', name: 'Smart Sprayer', type: 'bluetooth' }
+      ];
+      
+      // Filter out already connected drones
+      const existingNames = drones?.map(d => d.droneName.toLowerCase()) || [];
+      const newDrones = mockDrones.filter(drone => 
+        !existingNames.includes(drone.name.toLowerCase())
+      );
+      
+      setDiscoveredDrones(newDrones);
       setIsScanning(false);
+      
       toast({
-        title: "Field scan initiated",
-        description: "Drones are now scanning the field for plant health monitoring.",
+        title: "Drone discovery completed",
+        description: `Found ${newDrones.length} available drones in range.`,
       });
-    }, 3000);
+    }, 4000);
+  };
+
+  const handleConnectDiscoveredDrone = (discoveredDrone: {id: string, name: string, type: string}) => {
+    createDroneMutation.mutate({
+      droneName: discoveredDrone.name,
+      connectionType: discoveredDrone.type as "wifi" | "bluetooth"
+    });
+    
+    // Remove from discovered list
+    setDiscoveredDrones(prev => prev.filter(d => d.id !== discoveredDrone.id));
   };
 
   const getStatusColor = (status: string) => {
@@ -315,6 +343,59 @@ export default function DroneConnectionPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Discovered Drones */}
+      {discoveredDrones.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Signal className="text-primary" size={20} />
+              <span>Discovered Drones</span>
+              <Badge variant="secondary">{discoveredDrones.length} found</Badge>
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Select a drone to connect it to your system
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {discoveredDrones.map((discoveredDrone) => (
+                <div
+                  key={discoveredDrone.id}
+                  className="border rounded-lg p-4 hover:bg-accent/50 transition-colors"
+                  data-testid={`discovered-${discoveredDrone.id}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                        {discoveredDrone.type === 'wifi' ? (
+                          <Wifi size={20} className="text-muted-foreground" />
+                        ) : (
+                          <Bluetooth size={20} className="text-muted-foreground" />
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="font-medium">{discoveredDrone.name}</h4>
+                        <p className="text-sm text-muted-foreground capitalize">
+                          {discoveredDrone.type} connection
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      size="sm"
+                      onClick={() => handleConnectDiscoveredDrone(discoveredDrone)}
+                      disabled={createDroneMutation.isPending}
+                      data-testid={`connect-${discoveredDrone.id}`}
+                    >
+                      {createDroneMutation.isPending ? "Connecting..." : "Connect"}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Drone Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
