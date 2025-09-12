@@ -7,7 +7,11 @@ import { insertUserSchema, insertCropSchema, insertFieldSchema, insertDroneConne
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
-const JWT_SECRET = process.env.SESSION_SECRET || "your-secret-key";
+const JWT_SECRET = process.env.SESSION_SECRET;
+if (!JWT_SECRET) {
+  console.error('FATAL: SESSION_SECRET environment variable is required');
+  process.exit(1);
+}
 
 // Middleware to verify JWT token
 function authenticateToken(req: any, res: any, next: any) {
@@ -210,7 +214,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/health-records', authenticateToken, async (req: any, res) => {
     try {
-      const recordData = insertPlantHealthRecordSchema.parse(req.body);
+      const dataWithUser = { ...req.body, userId: req.user.userId };
+      const recordData = insertPlantHealthRecordSchema.parse(dataWithUser);
       const record = await storage.createHealthRecord(recordData);
       res.status(201).json(record);
     } catch (error: any) {
@@ -230,7 +235,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/pesticide-applications', authenticateToken, async (req: any, res) => {
     try {
-      const applicationData = insertPesticideApplicationSchema.parse(req.body);
+      const dataWithUser = { ...req.body, userId: req.user.userId };
+      const applicationData = insertPesticideApplicationSchema.parse(dataWithUser);
       const application = await storage.createPesticideApplication(applicationData);
       res.status(201).json(application);
     } catch (error: any) {
