@@ -5,7 +5,7 @@ import { insertUserSchema, insertCropSchema, insertFieldSchema, insertDroneConne
          insertPlantHealthRecordSchema, insertPesticideApplicationSchema, insertContactMessageSchema,
          loginSchema } from "@shared/schema";
 import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 const JWT_SECRET = process.env.SESSION_SECRET;
 if (!JWT_SECRET) {
